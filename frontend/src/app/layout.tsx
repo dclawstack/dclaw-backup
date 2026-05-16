@@ -1,13 +1,13 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { Sidebar } from "@/components/sidebar"
+import { ClientLayout } from "@/components/client-layout"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "DClaw Backup",
-  description: "AI-native immutable backup platform",
+  title: "DClaw Backup — AI-Native Immutable Backup Platform",
+  description: "Protect your data with AI-powered backup intelligence. Immutable storage, ransomware detection, and cross-cloud resilience for modern teams.",
 }
 
 export default function RootLayout({
@@ -17,9 +17,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} flex h-screen`}>
-        <Sidebar />
-        <main className="flex-1 overflow-auto bg-gray-50/50 p-6">{children}</main>
+      <body className={inter.className}>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )

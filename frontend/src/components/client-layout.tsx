@@ -1,18 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: "🛡️" },
-  { href: "/backup-jobs", label: "Backup Jobs", icon: "💾" },
-  { href: "/backup-runs", label: "Backup Runs", icon: "⏱️" },
-  { href: "/restore-jobs", label: "Restore Jobs", icon: "🔄" },
-  { href: "/storage-targets", label: "Storage Targets", icon: "☁️" },
-];
+function Sidebar() {
+  const pathname = usePathname() ?? "";
+  const navItems = [
+    { href: "/dashboard", label: "Dashboard", icon: "🛡️" },
+    { href: "/backup-jobs", label: "Backup Jobs", icon: "💾" },
+    { href: "/backup-runs", label: "Backup Runs", icon: "⏱️" },
+    { href: "/restore-jobs", label: "Restore Jobs", icon: "🔄" },
+    { href: "/storage-targets", label: "Storage Targets", icon: "☁️" },
+  ];
 
-export function Sidebar() {
-  const pathname = usePathname();
   return (
     <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0">
       <div className="p-6 border-b border-slate-700">
@@ -42,5 +42,25 @@ export function Sidebar() {
         <p className="text-xs text-slate-500">v1.3.0-alpha</p>
       </div>
     </aside>
+  );
+}
+
+export function ClientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() ?? "";
+  const isAppPage =
+    pathname === "/dashboard" ||
+    pathname.startsWith("/backup-") ||
+    pathname.startsWith("/restore-") ||
+    pathname.startsWith("/storage-");
+
+  if (!isAppPage) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="flex h-screen">
+      <Sidebar />
+      <main className="flex-1 overflow-auto bg-gray-50/50 p-6">{children}</main>
+    </div>
   );
 }

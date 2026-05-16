@@ -77,10 +77,11 @@ export default function BackupJobsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Backup Jobs</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <Button onClick={() => setOpen(true)}>Create Job</Button>
-          <DialogContent>
-            <DialogHeader><DialogTitle>New Backup Job</DialogTitle></DialogHeader>
+        <Button onClick={() => setOpen(true)}>Create Job</Button>
+      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>New Backup Job</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <Label>Name</Label>
@@ -115,7 +116,6 @@ export default function BackupJobsPage() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
 
       <Card>
         <CardContent className="p-0">

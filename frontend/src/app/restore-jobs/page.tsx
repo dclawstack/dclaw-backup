@@ -53,10 +53,11 @@ export default function RestoreJobsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Restore Jobs</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <Button onClick={() => setOpen(true)}>New Restore</Button>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create Restore Job</DialogTitle></DialogHeader>
+        <Button onClick={() => setOpen(true)}>New Restore</Button>
+      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Create Restore Job</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <Label>Backup Run</Label>
@@ -80,7 +81,6 @@ export default function RestoreJobsPage() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
 
       <Card>
         <CardContent className="p-0">
