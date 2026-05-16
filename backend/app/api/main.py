@@ -5,6 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.routes import health
+from app.api.v1 import (
+    storage_targets_router,
+    backup_jobs_router,
+    backup_runs_router,
+    restore_jobs_router,
+    backup_actions_router,
+)
 
 
 @asynccontextmanager
@@ -28,6 +35,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/health", tags=["health"])
-# TODO: Wire v1 routers here after creating them
-# from app.api.v1 import some_router
-# app.include_router(some_router.router, prefix="/api/v1/some", tags=["some"])
+app.include_router(storage_targets_router, prefix="/api/v1/storage-targets", tags=["storage-targets"])
+app.include_router(backup_jobs_router, prefix="/api/v1/backup-jobs", tags=["backup-jobs"])
+app.include_router(backup_runs_router, prefix="/api/v1/backup-runs", tags=["backup-runs"])
+app.include_router(restore_jobs_router, prefix="/api/v1/restore-jobs", tags=["restore-jobs"])
+app.include_router(backup_actions_router, prefix="/api/v1/backup", tags=["backup-actions"])

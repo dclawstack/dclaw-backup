@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: dclaw_backup
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -25,12 +25,12 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/dclaw_backup
       APP_ENV: production
     ports:
-      - "8120:8120"
+      - "8032:8032"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8120/health/')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8032/health/')"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -40,15 +40,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8120
+        NEXT_PUBLIC_API_URL: http://localhost:8032
     environment:
-      PORT: 3034
+      PORT: 3032
     ports:
-      - "3034:3034"
+      - "3032:3032"
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3034/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3032/"]
       interval: 30s
       timeout: 5s
       retries: 3

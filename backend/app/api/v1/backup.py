@@ -1,78 +1,66 @@
 import random
 import uuid
-from datetime import datetime, timezone
+from app.core.utils import utc_now
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.repositories.backup_repo import BackupJobRepository, BackupRunRepository
+from app.models.backup import BackupRun
+from app.schemas.backup import BackupRunResponse
 
 router = APIRouter()
 
 
-class CreateJobRequest(BaseModel):
-    source_path: str
-    frequency: str
+@router.post("/jobs/{job_id}/run", response_model=BackupRunResponse, status_code=201)
+async def run_backup_job(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    job_repo = BackupJobRepository(db)
+    run_repo = BackupRunRepository(db)
 
+    job = await job_repo.get_by_id(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Backup job not found")
 
-class BackupJob(BaseModel):
-    id: str
-    source_path: str
-    frequency: str
-    next_run: str
-    estimated_size_gb: float
-    compression_ratio: float
-    status: str
-    created_at: str
+    size_mb = random.randint(100, 50000)
+    compression = round(random.uniform(0.2, 0.6), 2)
+    dedup = round(random.uniform(0.1, 0.4), 2)
 
-
-class BackupRun(BaseModel):
-    id: str
-    job_id: str
-    started_at: str
-    completed_at: str
-    status: str
-    size_gb: float
-
-
-@router.post("/jobs")
-async def create_job(req: CreateJobRequest) -> BackupJob:
-    return BackupJob(
-        id=str(uuid.uuid4()),
-        source_path=req.source_path,
-        frequency=req.frequency,
-        next_run="2026-05-08T02:00:00Z",
-        estimated_size_gb=round(random.uniform(10, 500), 2),
-        compression_ratio=round(random.uniform(0.3, 0.7), 2),
-        status="scheduled",
-        created_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    run = BackupRun(
+        backup_job_id=job_id,
+        started_at=utc_now(),
+        status="running",
+        size_bytes=size_mb * 1024 * 1024,
+        compression_ratio=compression,
+        dedup_ratio=dedup,
     )
+    await run_repo.create(run)
+
+    # Simulate completion immediately for demo
+    run.status = random.choice(["success", "success", "success", "failed"])
+    run.completed_at = utc_now()
+    if run.status == "failed":
+        run.error_message = random.choice([
+            "Connection timeout to source",
+            "Insufficient storage on target",
+            "Checksum mismatch detected",
+        ])
+    await db.commit()
+    await db.refresh(run)
+
+    return run
 
 
-@router.get("/jobs/{job_id}/history")
-async def get_job_history(job_id: str) -> list[BackupRun]:
-    now = datetime.now(timezone.utc)
-    return [
-        BackupRun(
-            id=str(uuid.uuid4()),
-            job_id=job_id,
-            started_at=(now.replace(hour=now.hour - 3)).isoformat().replace("+00:00", "Z"),
-            completed_at=(now.replace(hour=now.hour - 2)).isoformat().replace("+00:00", "Z"),
-            status="success",
-            size_gb=round(random.uniform(10, 500), 2),
-        ),
-        BackupRun(
-            id=str(uuid.uuid4()),
-            job_id=job_id,
-            started_at=(now.replace(hour=now.hour - 6)).isoformat().replace("+00:00", "Z"),
-            completed_at=(now.replace(hour=now.hour - 5)).isoformat().replace("+00:00", "Z"),
-            status="success",
-            size_gb=round(random.uniform(10, 500), 2),
-        ),
-        BackupRun(
-            id=str(uuid.uuid4()),
-            job_id=job_id,
-            started_at=(now.replace(hour=now.hour - 9)).isoformat().replace("+00:00", "Z"),
-            completed_at=(now.replace(hour=now.hour - 8)).isoformat().replace("+00:00", "Z"),
-            status="success",
-            size_gb=round(random.uniform(10, 500), 2),
-        ),
-    ]
+@router.post("/runs/{run_id}/restore", response_model=BackupRunResponse)
+async def restore_from_run(
+    run_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    run_repo = BackupRunRepository(db)
+    run = await run_repo.get_by_id(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Backup run not found")
+    return run
