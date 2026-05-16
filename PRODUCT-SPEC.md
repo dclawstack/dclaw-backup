@@ -1,51 +1,81 @@
-# PRODUCT-SPEC: CRM
+# PRODUCT-SPEC: DClaw Backup
 
 ## Overview
 
-**App Name:** CRM
-**Domain:** Customer Relationship Management
-**Target User:** Sales teams, account managers
+**App Name:** DClaw Backup
+**Domain:** Data Protection & Immutable Backup Management
+**Target User:** DevOps teams, SMBs with regulated data
 
 ## Core Entities
 
-### Customer
+### StorageTarget
 ```
-Customer
+StorageTarget
 ├── id: UUID (PK)
 ├── name: str (required)
-├── email: str (unique, required)
-├── phone: str (optional)
-├── company: str (optional)
-├── status: enum ["lead", "active", "churned"] (default: "lead")
-├── notes: str (optional)
+├── target_type: enum ["s3", "azure_blob", "gcs", "local", "sftp"]
+├── config: str (optional, JSON)
+├── region: str (optional)
+├── immutable_enabled: bool (default false)
 ├── created_at: datetime
 └── updated_at: datetime
 ```
 
-### Deal
+### BackupJob
 ```
-Deal
+BackupJob
 ├── id: UUID (PK)
-├── customer_id: UUID (FK → Customer, ondelete=CASCADE)
-├── title: str (required)
-├── value: float (required, default 0)
-├── stage: enum ["prospecting", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"] (default: "prospecting")
-├── probability: int (0-100, default 0)
-├── expected_close_date: date (optional)
+├── name: str (required)
+├── description: str (optional)
+├── source_type: enum ["database", "filesystem", "s3", "vm"]
+├── source_config: str (optional, JSON)
+├── schedule_cron: str (optional)
+├── retention_days: int (default 30)
+├── compression_enabled: bool (default true)
+├── encryption_enabled: bool (default true)
+├── status: enum ["active", "paused", "failed"] (default "active")
+├── storage_target_id: UUID (FK → StorageTarget, ondelete=SET NULL)
 ├── created_at: datetime
 └── updated_at: datetime
 ```
 
-### Activity
+### BackupSource
 ```
-Activity
+BackupSource
 ├── id: UUID (PK)
-├── deal_id: UUID (FK → Deal, ondelete=CASCADE, optional)
-├── customer_id: UUID (FK → Customer, ondelete=CASCADE)
-├── activity_type: enum ["call", "email", "meeting", "note"] (required)
-├── description: str (required)
-├── scheduled_at: datetime (optional)
-├── completed: bool (default false)
+├── backup_job_id: UUID (FK → BackupJob, ondelete=CASCADE)
+├── source_type: str (required)
+├── connection_string: str (optional)
+├── credentials_ref: str (optional)
+├── metadata_json: str (optional)
+└── created_at: datetime
+```
+
+### BackupRun
+```
+BackupRun
+├── id: UUID (PK)
+├── backup_job_id: UUID (FK → BackupJob, ondelete=CASCADE)
+├── started_at: datetime (optional)
+├── completed_at: datetime (optional)
+├── status: enum ["pending", "running", "success", "failed", "cancelled"]
+├── size_bytes: int (BigInteger)
+├── compression_ratio: float (default 0)
+├── dedup_ratio: float (default 0)
+├── error_message: str (optional)
+└── created_at: datetime
+```
+
+### RestoreJob
+```
+RestoreJob
+├── id: UUID (PK)
+├── backup_run_id: UUID (FK → BackupRun, ondelete=CASCADE)
+├── target_path: str (optional)
+├── status: enum ["pending", "running", "completed", "failed"]
+├── started_at: datetime (optional)
+├── completed_at: datetime (optional)
+├── verify_checksum: bool (default true)
 ├── created_at: datetime
 └── updated_at: datetime
 ```
@@ -53,70 +83,76 @@ Activity
 ## User Stories / Screens
 
 ### Screen 1: Dashboard
-- Summary cards: total customers, open deals, total pipeline value, win rate
-- Recent activities feed
-- Deals by stage bar chart
-- Quick action buttons (add customer, add deal, log activity)
+- Summary cards: total jobs, total runs, success rate, storage used, targets, restores
+- Quick action buttons (manage jobs, manage targets)
 
-### Screen 2: Customers
-- Table view with pagination, search by name/email/company
-- Status filter (lead/active/churned)
-- Bulk delete
-- "Add Customer" modal/form
+### Screen 2: Backup Jobs
+- Table view with search, status filter
+- Create job modal with source type, schedule, retention
+- Run now button per job
+- Delete with confirmation
 
-### Screen 3: Customer Detail
-- Customer info card with edit/delete
-- Related deals list
-- Related activities timeline
-- Add deal / add activity buttons
+### Screen 3: Backup Job Detail
+- Job info cards (status, compression, encryption, retention)
+- Recent runs table with size, compression, timestamps
+- Run now button
 
-### Screen 4: Deals
-- Kanban board view by stage (prospecting → closed_won/lost)
-- Table view toggle
-- Search and filter by customer, stage, value
-- "Add Deal" form with customer dropdown
+### Screen 4: Backup Runs
+- Table view of all runs
+- Filter by job
+- Status badges, size formatting
+- Error messages for failed runs
 
-### Screen 5: Deal Detail
-- Deal info with edit/delete
-- Probability slider
-- Related activities
-- Move stage buttons
+### Screen 5: Restore Jobs
+- Table view of restore jobs
+- Create restore job modal (select run, target path)
+- Status badges
 
-### Screen 6: Activities
-- Timeline view of all activities
-- Filter by type, customer, deal
-- Mark complete / incomplete
+### Screen 6: Storage Targets
+- Table view of targets
+- Create target modal (name, type, region, immutability toggle)
+- Delete with confirmation
 
-## AI Features
+## AI Features (v1.3 Roadmap)
 
-- **Deal sentiment analysis:** Analyze customer emails/notes for positive/negative sentiment
-- **Next best action:** Recommend next activity based on deal stage and last contact
-- **Win probability prediction:** Use deal attributes to suggest probability score
+- **AI Backup Copilot:** Conversational recovery assistant
+- **Ransomware Detection:** Entropy analysis on backup streams
+- **Cross-Cloud Replication:** Multi-cloud sync policies
+- **Immutable Backups:** WORM storage with compliance audit trail
 
 ## API Endpoints (v1.0)
 
 ```
-GET    /api/v1/customers          → List customers
-POST   /api/v1/customers          → Create customer
-GET    /api/v1/customers/{id}     → Get customer
-PUT    /api/v1/customers/{id}     → Update customer
-DELETE /api/v1/customers/{id}     → Delete customer
-GET    /api/v1/deals              → List deals
-POST   /api/v1/deals              → Create deal
-GET    /api/v1/deals/{id}         → Get deal
-PUT    /api/v1/deals/{id}         → Update deal
-DELETE /api/v1/deals/{id}         → Delete deal
-GET    /api/v1/activities         → List activities
-POST   /api/v1/activities         → Create activity
-GET    /api/v1/activities/{id}    → Get activity
-PUT    /api/v1/activities/{id}    → Update activity
-DELETE /api/v1/activities/{id}    → Delete activity
-GET    /api/v1/dashboard          → Dashboard stats
+GET    /api/v1/storage-targets          → List targets
+POST   /api/v1/storage-targets          → Create target
+GET    /api/v1/storage-targets/{id}     → Get target
+PUT    /api/v1/storage-targets/{id}     → Update target
+DELETE /api/v1/storage-targets/{id}     → Delete target
+
+GET    /api/v1/backup-jobs              → List jobs
+POST   /api/v1/backup-jobs              → Create job
+GET    /api/v1/backup-jobs/{id}         → Get job (with sources & runs)
+PUT    /api/v1/backup-jobs/{id}         → Update job
+DELETE /api/v1/backup-jobs/{id}         → Delete job
+POST   /api/v1/backup/jobs/{id}/run     → Trigger backup run
+
+GET    /api/v1/backup-runs              → List runs
+POST   /api/v1/backup-runs              → Create run
+GET    /api/v1/backup-runs/{id}         → Get run
+PUT    /api/v1/backup-runs/{id}         → Update run
+DELETE /api/v1/backup-runs/{id}         → Delete run
+
+GET    /api/v1/restore-jobs             → List restores
+POST   /api/v1/restore-jobs             → Create restore
+GET    /api/v1/restore-jobs/{id}        → Get restore
+PUT    /api/v1/restore-jobs/{id}        → Update restore
+DELETE /api/v1/restore-jobs/{id}        → Delete restore
 ```
 
 ## Non-Functional Requirements
 
 - Backend tests: 70%+ coverage
-- Frontend: Responsive, Tailwind + shadcn/ui
+- Frontend: Responsive, Tailwind + pre-built UI components
 - Docker: All services start with `docker compose up -d`
 - No mock data — everything persisted to PostgreSQL
+- Alembic migrations for all schema changes

@@ -172,6 +172,7 @@ Available components:
 | dclaw-crm | 8095 | 3006 | dclaw_crm |
 | dclaw-finance | 8096 | 3007 | dclaw_finance |
 | dclaw-hr | 8097 | 3008 | dclaw_hr |
+| dclaw-backup | 8032 | 3032 | dclaw_backup |
 | dclaw-inventory | 8098 | 3009 | dclaw_inventory |
 | dclaw-project | 8100 | 3010 | dclaw_project |
 | dclaw-support | 8101 | 3014 | dclaw_support |
